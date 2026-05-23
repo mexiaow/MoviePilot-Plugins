@@ -1,4 +1,17 @@
 {
+  "DramaRadar": {
+    "name": "新剧雷达",
+    "description": "定时监控猫眼网播热度榜，发现新剧后直发 Telegram。",
+    "labels": "消息通知,Telegram,新剧监控",
+    "version": "1.0.0",
+    "icon": "Telegram_A.png",
+    "author": "mexiaow",
+    "level": 1,
+    "system_version": ">=2.12.0",
+    "history": {
+      "v1.0.0": "新增新剧雷达插件，支持猫眼网播热度榜定时扫描、首次基线、插件数据去重和 Telegram 群组/话题直发"
+    }
+  },
   "EmbyDailyReports": {
     "name": "Emby入库日报",
     "description": "定时统计 MoviePilot 入库记录并发送到 Telegram 话题。",
