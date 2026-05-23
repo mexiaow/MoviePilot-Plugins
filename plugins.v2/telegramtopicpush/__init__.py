@@ -16,7 +16,7 @@ class TelegramTopicPush(_PluginBase):
     # 插件图标
     plugin_icon = "Telegram_A.png"
     # 插件版本
-    plugin_version = "1.0.1"
+    plugin_version = "1.0.2"
     # 插件作者
     plugin_author = "mexiaow"
     # 作者主页
@@ -136,7 +136,7 @@ class TelegramTopicPush(_PluginBase):
                                         "component": "VSwitch",
                                         "props": {
                                             "model": "only_when_channel_empty",
-                                            "label": "只处理默认通知",
+                                            "label": "防重复发送",
                                         },
                                     }
                                 ],
@@ -149,11 +149,30 @@ class TelegramTopicPush(_PluginBase):
                                         "component": "VSwitch",
                                         "props": {
                                             "model": "onlyonce",
-                                            "label": "测试发送一次",
+                                            "label": "测试发到兜底话题",
                                         },
                                     }
                                 ],
                             },
+                        ],
+                    },
+                    {
+                        "component": "VRow",
+                        "content": [
+                            {
+                                "component": "VCol",
+                                "props": {"cols": 12},
+                                "content": [
+                                    {
+                                        "component": "VAlert",
+                                        "props": {
+                                            "type": "info",
+                                            "variant": "tonal",
+                                            "text": "防重复发送开启后，已经指定微信、Telegram、Web 等渠道的通知不会再被本插件转发。正常建议开启。",
+                                        },
+                                    }
+                                ],
+                            }
                         ],
                     },
                     {
@@ -214,7 +233,7 @@ class TelegramTopicPush(_PluginBase):
                                         "component": "VTextField",
                                         "props": {
                                             "model": "default_topic_id",
-                                            "label": "默认 Topic ID",
+                                            "label": "兜底 Topic ID",
                                             "type": "number",
                                         },
                                     }
@@ -233,7 +252,7 @@ class TelegramTopicPush(_PluginBase):
                                         "component": "VSelect",
                                         "props": {
                                             "model": "msgtypes",
-                                            "label": "通知类型过滤",
+                                            "label": "接管哪些通知类型，不选就是全部",
                                             "items": msgtype_items,
                                             "multiple": True,
                                             "chips": True,
@@ -255,7 +274,7 @@ class TelegramTopicPush(_PluginBase):
                                         "component": "VTextarea",
                                         "props": {
                                             "model": "rules",
-                                            "label": "话题分流规则 JSON",
+                                            "label": "分流规则：关键词 -> 话题ID",
                                             "rows": 14,
                                         },
                                     }
@@ -275,7 +294,7 @@ class TelegramTopicPush(_PluginBase):
                                         "props": {
                                             "type": "warning",
                                             "variant": "tonal",
-                                            "text": "启用前建议关闭 MoviePilot 内置 Telegram 通知，否则同一通知会重复发送。",
+                                            "text": "如果 MoviePilot 内置 Telegram 通知仍然开启，建议保持“防重复发送”开启，或者关闭内置 Telegram 通知。",
                                         },
                                     }
                                 ],
