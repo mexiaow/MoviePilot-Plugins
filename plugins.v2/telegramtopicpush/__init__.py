@@ -18,7 +18,7 @@ class TelegramTopicPush(_PluginBase):
     # 插件图标
     plugin_icon = "Telegram_A.png"
     # 插件版本
-    plugin_version = "1.0.1"
+    plugin_version = "1.0.3"
     # 插件作者
     plugin_author = "mexiaow"
     # 作者主页
@@ -415,8 +415,8 @@ class TelegramTopicPush(_PluginBase):
                 logger.info(f"Telegram话题推送成功：topic_id={topic_id}")
                 return
 
-            logger.warning("Telegram话题推送图片失败，降级为文本消息")
-            content = f"{content}\n\n图片：{image}"
+            logger.error("Telegram话题推送失败：图片消息重试后仍发送失败")
+            return
 
         text_payload = self.__build_text_payload(
             topic_id=topic_id,
@@ -561,6 +561,7 @@ class TelegramTopicPush(_PluginBase):
         if title:
             parts.append(TelegramTopicPush.__format_markdown_v2_text(title))
         if text:
+            text = TelegramTopicPush.__clean_text(text)
             parts.append(TelegramTopicPush.__escape_markdown_v2(text))
         if link:
             parts.append(TelegramTopicPush.__build_markdown_v2_link("查看详情", link))
@@ -572,6 +573,24 @@ class TelegramTopicPush(_PluginBase):
                     TelegramTopicPush.__build_markdown_v2_link(button_text, button_url)
                 )
         return "\n\n".join(parts) or " "
+
+    @staticmethod
+    def __clean_text(text: str) -> str:
+        if "📝 描述" not in text:
+            return text
+
+        lines = text.rstrip().splitlines()
+        while len(lines) >= 2:
+            last = lines[-1].strip()
+            previous = lines[-2].strip()
+            if last == "/10" and re.fullmatch(r"\d+(?:\.\d+)?", previous):
+                lines = lines[:-2]
+                continue
+            if re.fullmatch(r"\d+(?:\.\d+)?\s*/10", last):
+                lines = lines[:-1]
+                continue
+            break
+        return "\n".join(lines).rstrip()
 
     @staticmethod
     def __format_markdown_v2_text(text: str) -> str:

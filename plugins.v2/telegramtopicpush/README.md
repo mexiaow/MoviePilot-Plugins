@@ -302,7 +302,7 @@ https://api.telegram.org/bot<你的BotToken>/getUpdates
 
 - 同一个 Telegram API 请求最多发送 3 次。
 - 如果填写了自定义 Telegram API 地址，且一直无响应，会再尝试官方 `https://api.telegram.org`。
-- 如果图片消息一直失败，会降级成文本消息，把图片地址放进正文。
+- 图片通知会保持图片消息发送，不改成纯文本。
 - 如果 Telegram 返回 429 或 5xx，会等待后重试。
 - 如果是 Bot Token、Chat ID、Topic ID 这类配置错误，重试通常没用，需要改配置。
 
@@ -320,7 +320,7 @@ Markdown 使用 Telegram MarkdownV2。
 
 ## 测试发送
 
-配置页里有“测试发送一次”开关。
+配置页里有“测试发送”开关。
 
 打开后保存配置，插件会向 `default_topic_id` 发送一条测试消息。
 

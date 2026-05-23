@@ -3,12 +3,14 @@
     "name": "Telegram话题推送",
     "description": "按规则将 MoviePilot 通知推送到 Telegram 群组话题。",
     "labels": "消息通知,Telegram",
-    "version": "1.0.1",
+    "version": "1.0.3",
     "icon": "Telegram_A.png",
     "author": "mexiaow",
     "level": 1,
     "system_version": ">=2.12.0",
     "history": {
+      "v1.0.3": "清理下载描述末尾的站点评分碎片，去掉图片失败后的纯文本降级",
+      "v1.0.2": "去掉图片失败后的纯文本降级，图片通知保持 Telegram 图片消息发送逻辑",
       "v1.0.1": "修复 Telegram MarkdownV2 特殊字符转义，避免资源描述导致发送失败",
       "v1.0.0": "新增 Telegram 群组话题分流推送，支持自定义 API 地址、失败重试和查看详情链接"
     }

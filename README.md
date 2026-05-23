@@ -47,7 +47,6 @@ plugins.v2/telegramtopicpush/README.md
 - 支持 Telegram `sendPhoto`
 - 支持自定义 Telegram API 地址
 - 支持发送失败重试
-- 支持图片失败降级文本消息
 - 支持保留“查看详情”链接
 - 支持通知类型过滤
 - 支持防重复发送
