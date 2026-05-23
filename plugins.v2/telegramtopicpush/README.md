@@ -306,11 +306,9 @@ https://api.telegram.org/bot<你的BotToken>/getUpdates
 - 如果 Telegram 返回 429 或 5xx，会等待后重试。
 - 如果是 Bot Token、Chat ID、Topic ID 这类配置错误，重试通常没用，需要改配置。
 
-Markdown 按 MoviePilot 官方 Telegram 模块的方式处理：
+Markdown 使用 Telegram MarkdownV2。
 
-```text
-telegramify_markdown.standardize + MarkdownV2
-```
+插件会把正文当普通文本转义，只保留标题和详情中的真实链接。
 
 ## 重复推送
 

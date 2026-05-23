@@ -1,5 +1,6 @@
 import json
 import time
+import re
 from typing import Any, Dict, List, Tuple
 
 from app.core.event import Event, eventmanager
@@ -7,7 +8,6 @@ from app.log import logger
 from app.plugins import _PluginBase
 from app.schemas.types import EventType, NotificationType
 from app.utils.http import RequestUtils
-from telegramify_markdown import standardize
 
 
 class TelegramTopicPush(_PluginBase):
@@ -494,7 +494,7 @@ class TelegramTopicPush(_PluginBase):
             "chat_id": self._chat_id,
             "message_thread_id": topic_id,
             "parse_mode": "MarkdownV2",
-            "text": standardize(content),
+            "text": content,
             "disable_web_page_preview": disable_web_page_preview,
         }
         reply_markup = self.__build_reply_markup(buttons)
@@ -514,7 +514,7 @@ class TelegramTopicPush(_PluginBase):
             "message_thread_id": topic_id,
             "parse_mode": "MarkdownV2",
             "photo": image,
-            "caption": standardize(content),
+            "caption": content,
         }
         reply_markup = self.__build_reply_markup(buttons)
         if reply_markup:
@@ -559,17 +559,50 @@ class TelegramTopicPush(_PluginBase):
     ) -> str:
         parts = []
         if title:
-            parts.append(title)
+            parts.append(TelegramTopicPush.__format_markdown_v2_text(title))
         if text:
-            parts.append(text)
+            parts.append(TelegramTopicPush.__escape_markdown_v2(text))
         if link:
-            parts.append(f"[查看详情]({link})")
+            parts.append(TelegramTopicPush.__build_markdown_v2_link("查看详情", link))
         for button in buttons or []:
             button_text = button.get("text") or "查看详情"
             button_url = button.get("url")
             if button_url and button_url != link:
-                parts.append(f"[{button_text}]({button_url})")
+                parts.append(
+                    TelegramTopicPush.__build_markdown_v2_link(button_text, button_url)
+                )
         return "\n\n".join(parts) or " "
+
+    @staticmethod
+    def __format_markdown_v2_text(text: str) -> str:
+        pattern = re.compile(r"\[([^\]]+)]\((https?://[^)\s]+)\)")
+        parts = []
+        last_end = 0
+        for match in pattern.finditer(text):
+            parts.append(TelegramTopicPush.__escape_markdown_v2(text[last_end:match.start()]))
+            parts.append(
+                TelegramTopicPush.__build_markdown_v2_link(
+                    match.group(1),
+                    match.group(2),
+                )
+            )
+            last_end = match.end()
+        parts.append(TelegramTopicPush.__escape_markdown_v2(text[last_end:]))
+        return "".join(parts)
+
+    @staticmethod
+    def __build_markdown_v2_link(text: str, url: str) -> str:
+        escaped_text = TelegramTopicPush.__escape_markdown_v2(text)
+        escaped_url = TelegramTopicPush.__escape_markdown_v2_url(url)
+        return f"[{escaped_text}]({escaped_url})"
+
+    @staticmethod
+    def __escape_markdown_v2(text: str) -> str:
+        return re.sub(r"([_*\[\]()~`>#+\-=|{}.!])", r"\\\1", text or "")
+
+    @staticmethod
+    def __escape_markdown_v2_url(url: str) -> str:
+        return (url or "").replace("\\", "\\\\").replace(")", "\\)")
 
     @staticmethod
     def __build_reply_markup(buttons: List[Dict[str, str]] = None) -> dict:

@@ -9,7 +9,7 @@
     "level": 1,
     "system_version": ">=2.12.0",
     "history": {
-      "v1.0.0": "新增 Telegram 群组话题分流推送，支持自定义 API 地址、失败重试、查看详情链接和官方 MarkdownV2 处理"
+      "v1.0.0": "新增 Telegram 群组话题分流推送，支持自定义 API 地址、失败重试、查看详情链接和 MarkdownV2 转义处理"
     }
   }
 }
