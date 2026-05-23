@@ -1,0 +1,16 @@
+{
+  "TelegramTopicPush": {
+    "name": "Telegram话题推送",
+    "description": "按规则将 MoviePilot 通知推送到 Telegram 群组话题。",
+    "labels": "消息通知,Telegram",
+    "version": "1.0.1",
+    "icon": "Telegram_A.png",
+    "author": "mexiaow",
+    "level": 1,
+    "system_version": ">=2.12.0",
+    "history": {
+      "v1.0.1": "支持自定义 Telegram API 地址",
+      "v1.0.0": "新增 Telegram 群组话题分流推送"
+    }
+  }
+}
