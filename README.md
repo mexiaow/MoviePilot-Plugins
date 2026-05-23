@@ -46,7 +46,10 @@ plugins.v2/telegramtopicpush/README.md
 - 支持 Telegram `sendMessage`
 - 支持 Telegram `sendPhoto`
 - 支持自定义 Telegram API 地址
+- 支持发送失败重试
+- 支持图片失败降级文本消息
+- 支持保留“查看详情”链接
 - 支持通知类型过滤
-- 支持只处理默认通知，避免重复推送
+- 支持防重复发送
 
 使用时建议关闭 MoviePilot 内置 Telegram 通知，只保留该插件。

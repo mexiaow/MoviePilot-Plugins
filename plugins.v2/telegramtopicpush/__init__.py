@@ -1,4 +1,5 @@
 import json
+import time
 from typing import Any, Dict, List, Tuple
 
 from app.core.event import Event, eventmanager
@@ -16,7 +17,7 @@ class TelegramTopicPush(_PluginBase):
     # 插件图标
     plugin_icon = "Telegram_A.png"
     # 插件版本
-    plugin_version = "1.0.2"
+    plugin_version = "1.0.5"
     # 插件作者
     plugin_author = "mexiaow"
     # 作者主页
@@ -36,6 +37,9 @@ class TelegramTopicPush(_PluginBase):
     _only_when_channel_empty = True
     _msgtypes: List[str] = []
     _rules: List[Dict[str, Any]] = []
+    _official_api_base_url = "https://api.telegram.org"
+    _retry_times = 2
+    _retry_interval = 2
 
     _default_rules = [
         {
@@ -64,10 +68,8 @@ class TelegramTopicPush(_PluginBase):
         config = config or {}
         self._enabled = bool(config.get("enabled"))
         self._bot_token = (config.get("bot_token") or "").strip()
-        self._api_base_url = (
-            (config.get("api_base_url") or "https://api.telegram.org")
-            .strip()
-            .rstrip("/")
+        self._api_base_url = self.__normalize_api_base_url(
+            config.get("api_base_url") or self._official_api_base_url
         )
         self._chat_id = str(config.get("chat_id") or "").strip()
         self._default_topic_id = self.__to_int(config.get("default_topic_id"), 2)
@@ -149,7 +151,7 @@ class TelegramTopicPush(_PluginBase):
                                         "component": "VSwitch",
                                         "props": {
                                             "model": "onlyonce",
-                                            "label": "测试发到兜底话题",
+                                            "label": "测试发送",
                                         },
                                     }
                                 ],
@@ -307,7 +309,7 @@ class TelegramTopicPush(_PluginBase):
             "enabled": False,
             "onlyonce": False,
             "bot_token": "",
-            "api_base_url": "https://api.telegram.org",
+            "api_base_url": self._official_api_base_url,
             "chat_id": "",
             "default_topic_id": 2,
             "only_when_channel_empty": True,
@@ -330,29 +332,47 @@ class TelegramTopicPush(_PluginBase):
         if not event_data:
             return
 
-        if self._only_when_channel_empty and event_data.get("channel"):
+        message = event_data.get("message") if isinstance(event_data, dict) else None
+        notice = message or event_data
+
+        channel = self.__get_notice_value(notice, "channel")
+        if self._only_when_channel_empty and channel:
             return
 
-        msgtype = self.__value_to_str(event_data.get("type"))
+        msgtype = self.__value_to_str(
+            self.__get_notice_value(notice, "type")
+            or self.__get_notice_value(notice, "mtype")
+            or event_data.get("msgstr")
+        )
         if self._msgtypes and msgtype not in self._msgtypes:
             return
 
-        title = self.__value_to_str(event_data.get("title")).strip()
-        text = self.__value_to_str(event_data.get("text")).strip()
-        image = self.__value_to_str(event_data.get("image")).strip()
-        link = self.__value_to_str(event_data.get("link")).strip()
+        title = self.__value_to_str(self.__get_notice_value(notice, "title")).strip()
+        text = self.__value_to_str(self.__get_notice_value(notice, "text")).strip()
+        image = self.__value_to_str(self.__get_notice_value(notice, "image")).strip()
+        link = self.__value_to_str(self.__get_notice_value(notice, "link")).strip()
+        buttons = self.__parse_buttons(self.__get_notice_value(notice, "buttons"))
+        buttons = self.__append_link_button(buttons=buttons, link=link)
 
         if not title and not text and not image:
             return
 
         topic_id = self.__match_topic_id(f"{title}\n{text}")
-        content = self.__build_content(title=title, text=text, link=link)
-        disable_preview = bool(event_data.get("disable_web_page_preview", True))
+        content = self.__build_content(
+            title=title,
+            text=text,
+            link=link,
+            buttons=buttons,
+        )
+        disable_preview = bool(
+            self.__get_notice_value(notice, "disable_web_page_preview", True)
+        )
 
         self.__send_telegram_message(
             topic_id=topic_id,
             content=content,
             image=image,
+            buttons=buttons,
             disable_web_page_preview=disable_preview,
         )
 
@@ -372,57 +392,153 @@ class TelegramTopicPush(_PluginBase):
         topic_id: int,
         content: str,
         image: str = "",
+        buttons: List[Dict[str, str]] = None,
         disable_web_page_preview: bool = True,
     ):
         if not self._bot_token or not self._chat_id:
             logger.warning("Telegram话题推送失败：Bot Token 或 Chat ID 未配置")
             return
 
-        method = "sendPhoto" if image else "sendMessage"
-        url = f"{self._api_base_url}/bot{self._bot_token}/{method}"
+        api_bases = self.__get_api_base_urls()
+        if image:
+            photo_payload = self.__build_photo_payload(
+                topic_id=topic_id,
+                content=content,
+                image=image,
+                buttons=buttons,
+            )
+            if self.__post_telegram(
+                method="sendPhoto",
+                payload=photo_payload,
+                api_bases=api_bases,
+            ):
+                logger.info(f"Telegram话题推送成功：topic_id={topic_id}")
+                return
+
+            logger.warning("Telegram话题推送图片失败，降级为文本消息")
+            content = f"{content}\n\n图片：{image}"
+
+        text_payload = self.__build_text_payload(
+            topic_id=topic_id,
+            content=content,
+            disable_web_page_preview=disable_web_page_preview,
+            buttons=buttons,
+        )
+        if self.__post_telegram(
+            method="sendMessage",
+            payload=text_payload,
+            api_bases=api_bases,
+        ):
+            logger.info(f"Telegram话题推送成功：topic_id={topic_id}")
+            return
+
+        logger.error("Telegram话题推送失败：重试和兜底发送均失败")
+
+    def __post_telegram(
+        self,
+        method: str,
+        payload: Dict[str, Any],
+        api_bases: List[str],
+    ) -> bool:
+        total_attempts = self._retry_times + 1
+
+        for api_base in api_bases:
+            url = f"{api_base}/bot{self._bot_token}/{method}"
+            for attempt in range(1, total_attempts + 1):
+                response = RequestUtils(
+                    content_type="application/json",
+                    accept_type="application/json",
+                    timeout=20,
+                ).post_res(url, json=payload)
+
+                if response is None:
+                    logger.warning(
+                        f"Telegram话题推送无响应：{method} "
+                        f"{api_base} 第 {attempt}/{total_attempts} 次"
+                    )
+                    if attempt < total_attempts:
+                        time.sleep(self._retry_interval * attempt)
+                    continue
+
+                try:
+                    result = response.json()
+                except Exception:
+                    result = {}
+
+                if response.status_code == 200 and result.get("ok") is not False:
+                    return True
+
+                logger.warning(
+                    f"Telegram话题推送失败：{method} {api_base} "
+                    f"{response.status_code} {response.text}"
+                )
+
+                if (
+                    not self.__should_retry(response.status_code)
+                    or attempt >= total_attempts
+                ):
+                    break
+
+                time.sleep(self._retry_interval * attempt)
+
+        return False
+
+    def __build_text_payload(
+        self,
+        topic_id: int,
+        content: str,
+        disable_web_page_preview: bool,
+        buttons: List[Dict[str, str]] = None,
+    ) -> Dict[str, Any]:
         payload = {
             "chat_id": self._chat_id,
             "message_thread_id": topic_id,
             "parse_mode": "Markdown",
+            "text": content,
+            "disable_web_page_preview": disable_web_page_preview,
         }
+        reply_markup = self.__build_reply_markup(buttons)
+        if reply_markup:
+            payload["reply_markup"] = reply_markup
+        return payload
 
-        if image:
-            payload.update(
-                {
-                    "photo": image,
-                    "caption": content,
-                }
-            )
-        else:
-            payload.update(
-                {
-                    "text": content,
-                    "disable_web_page_preview": disable_web_page_preview,
-                }
-            )
+    def __build_photo_payload(
+        self,
+        topic_id: int,
+        content: str,
+        image: str,
+        buttons: List[Dict[str, str]] = None,
+    ) -> Dict[str, Any]:
+        payload = {
+            "chat_id": self._chat_id,
+            "message_thread_id": topic_id,
+            "parse_mode": "Markdown",
+            "photo": image,
+            "caption": content,
+        }
+        reply_markup = self.__build_reply_markup(buttons)
+        if reply_markup:
+            payload["reply_markup"] = reply_markup
+        return payload
 
-        response = RequestUtils(
-            content_type="application/json",
-            accept_type="application/json",
-            timeout=20,
-        ).post_res(url, json=payload)
+    def __get_api_base_urls(self) -> List[str]:
+        api_bases = [self._api_base_url]
+        if self._api_base_url != self._official_api_base_url:
+            api_bases.append(self._official_api_base_url)
+        return api_bases
 
-        if not response:
-            logger.error("Telegram话题推送失败：Telegram API 无响应")
-            return
+    @staticmethod
+    def __normalize_api_base_url(api_base_url: str) -> str:
+        api_base_url = (api_base_url or "").strip().rstrip("/")
+        if not api_base_url:
+            return TelegramTopicPush._official_api_base_url
+        if not api_base_url.startswith(("http://", "https://")):
+            return f"https://{api_base_url}"
+        return api_base_url
 
-        try:
-            result = response.json()
-        except Exception:
-            result = {}
-
-        if response.status_code != 200 or result.get("ok") is False:
-            logger.error(
-                f"Telegram话题推送失败：{response.status_code} {response.text}"
-            )
-            return
-
-        logger.info(f"Telegram话题推送成功：topic_id={topic_id}")
+    @staticmethod
+    def __should_retry(status_code: int) -> bool:
+        return status_code == 429 or status_code >= 500
 
     def __match_topic_id(self, text: str) -> int:
         for rule in self._rules:
@@ -435,15 +551,101 @@ class TelegramTopicPush(_PluginBase):
         return self._default_topic_id
 
     @staticmethod
-    def __build_content(title: str, text: str, link: str) -> str:
+    def __build_content(
+        title: str,
+        text: str,
+        link: str,
+        buttons: List[Dict[str, str]] = None,
+    ) -> str:
         parts = []
         if title:
             parts.append(title)
         if text:
             parts.append(text)
         if link:
-            parts.append(link)
+            parts.append(f"[查看详情]({link})")
+        for button in buttons or []:
+            button_text = button.get("text") or "查看详情"
+            button_url = button.get("url")
+            if button_url and button_url != link:
+                parts.append(f"[{button_text}]({button_url})")
         return "\n\n".join(parts) or " "
+
+    @staticmethod
+    def __build_reply_markup(buttons: List[Dict[str, str]] = None) -> dict:
+        inline_keyboard = []
+        for button in buttons or []:
+            text = button.get("text") or "查看详情"
+            url = button.get("url")
+            if text and url:
+                inline_keyboard.append([{"text": text, "url": url}])
+        return {"inline_keyboard": inline_keyboard} if inline_keyboard else {}
+
+    def __parse_buttons(self, buttons: Any) -> List[Dict[str, str]]:
+        parsed_buttons = []
+        for button in self.__iter_buttons(buttons):
+            if not isinstance(button, dict):
+                continue
+            text = (
+                button.get("text")
+                or button.get("title")
+                or button.get("name")
+                or "查看详情"
+            )
+            url = button.get("url") or button.get("href") or button.get("link")
+            if url:
+                parsed_buttons.append(
+                    {
+                        "text": self.__value_to_str(text).strip() or "查看详情",
+                        "url": self.__value_to_str(url).strip(),
+                    }
+                )
+        return parsed_buttons
+
+    @staticmethod
+    def __append_link_button(
+        buttons: List[Dict[str, str]],
+        link: str,
+    ) -> List[Dict[str, str]]:
+        if not link:
+            return buttons or []
+        buttons = buttons or []
+        if any(button.get("url") == link for button in buttons):
+            return buttons
+        return [*buttons, {"text": "查看详情", "url": link}]
+
+    def __iter_buttons(self, buttons: Any) -> List[Any]:
+        if not buttons:
+            return []
+        if isinstance(buttons, str):
+            try:
+                buttons = json.loads(buttons)
+            except Exception:
+                return []
+        if isinstance(buttons, dict):
+            if isinstance(buttons.get("inline_keyboard"), list):
+                return self.__flatten_buttons(buttons.get("inline_keyboard"))
+            return [buttons]
+        if isinstance(buttons, list):
+            return self.__flatten_buttons(buttons)
+        return []
+
+    def __flatten_buttons(self, buttons: List[Any]) -> List[Any]:
+        flattened = []
+        for button in buttons:
+            if isinstance(button, list):
+                flattened.extend(self.__flatten_buttons(button))
+            else:
+                flattened.append(button)
+        return flattened
+
+    @staticmethod
+    def __get_notice_value(notice: Any, key: str, default: Any = None) -> Any:
+        if notice is None:
+            return default
+        if isinstance(notice, dict):
+            return notice.get(key, default)
+        return getattr(notice, key, default)
 
     def __parse_rules(self, rules: Any) -> List[Dict[str, Any]]:
         if rules in (None, ""):

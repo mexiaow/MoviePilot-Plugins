@@ -40,7 +40,7 @@ package.v2.json -> TelegramTopicPush
 | --- | --- |
 | 启用插件 | 打开 |
 | 防重复发送 | 建议打开 |
-| 测试发到兜底话题 | 配好后打开一次，用来测试 |
+| 测试发送 | 配好后打开一次，用来测试，会发到兜底话题 |
 | Bot Token | Telegram Bot Token |
 | Telegram API 地址 | 默认不用改，有反代才改 |
 | Chat ID | Telegram 群组 ID |
@@ -292,6 +292,19 @@ https://api.telegram.org/bot<你的BotToken>/getUpdates
 8. 未命中时发送到 `default_topic_id`。
 9. 有图片时调用 Telegram `sendPhoto`。
 10. 无图片时调用 Telegram `sendMessage`。
+11. 如果 MoviePilot 通知带 `link` 或“查看详情”按钮，会保留对应 URL。
+
+## 失败兜底
+
+发送失败时插件会自动处理，不需要额外配置。
+
+规则：
+
+- 同一个 Telegram API 请求最多发送 3 次。
+- 如果填写了自定义 Telegram API 地址，且一直无响应，会再尝试官方 `https://api.telegram.org`。
+- 如果图片消息一直失败，会降级成文本消息，把图片地址放进正文。
+- 如果 Telegram 返回 429 或 5xx，会等待后重试。
+- 如果是 Bot Token、Chat ID、Topic ID 这类配置错误，重试通常没用，需要改配置。
 
 ## 重复推送
 
