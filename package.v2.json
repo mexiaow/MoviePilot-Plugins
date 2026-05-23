@@ -3,18 +3,13 @@
     "name": "Telegram话题推送",
     "description": "按规则将 MoviePilot 通知推送到 Telegram 群组话题。",
     "labels": "消息通知,Telegram",
-    "version": "1.0.5",
+    "version": "1.0.0",
     "icon": "Telegram_A.png",
     "author": "mexiaow",
     "level": 1,
     "system_version": ">=2.12.0",
     "history": {
-      "v1.0.5": "兼容嵌套 Notification 事件数据，并将 link 自动转成查看详情按钮",
-      "v1.0.4": "保留 MoviePilot 通知按钮中的查看详情链接",
-      "v1.0.3": "增加 Telegram 发送重试、API 地址兜底和图片失败降级文本",
-      "v1.0.2": "优化配置页文案，降低过滤项理解成本",
-      "v1.0.1": "支持自定义 Telegram API 地址",
-      "v1.0.0": "新增 Telegram 群组话题分流推送"
+      "v1.0.0": "新增 Telegram 群组话题分流推送，支持自定义 API 地址、失败重试、查看详情链接和官方 MarkdownV2 处理"
     }
   }
 }

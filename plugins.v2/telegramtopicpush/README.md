@@ -292,7 +292,7 @@ https://api.telegram.org/bot<你的BotToken>/getUpdates
 8. 未命中时发送到 `default_topic_id`。
 9. 有图片时调用 Telegram `sendPhoto`。
 10. 无图片时调用 Telegram `sendMessage`。
-11. 如果 MoviePilot 通知带 `link` 或“查看详情”按钮，会保留对应 URL。
+11. 如果 MoviePilot 通知带 `link`，会在正文里保留“查看详情”。
 
 ## 失败兜底
 
@@ -305,6 +305,12 @@ https://api.telegram.org/bot<你的BotToken>/getUpdates
 - 如果图片消息一直失败，会降级成文本消息，把图片地址放进正文。
 - 如果 Telegram 返回 429 或 5xx，会等待后重试。
 - 如果是 Bot Token、Chat ID、Topic ID 这类配置错误，重试通常没用，需要改配置。
+
+Markdown 按 MoviePilot 官方 Telegram 模块的方式处理：
+
+```text
+telegramify_markdown.standardize + MarkdownV2
+```
 
 ## 重复推送
 

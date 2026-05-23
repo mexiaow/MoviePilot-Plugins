@@ -7,6 +7,7 @@ from app.log import logger
 from app.plugins import _PluginBase
 from app.schemas.types import EventType, NotificationType
 from app.utils.http import RequestUtils
+from telegramify_markdown import standardize
 
 
 class TelegramTopicPush(_PluginBase):
@@ -17,7 +18,7 @@ class TelegramTopicPush(_PluginBase):
     # 插件图标
     plugin_icon = "Telegram_A.png"
     # 插件版本
-    plugin_version = "1.0.5"
+    plugin_version = "1.0.0"
     # 插件作者
     plugin_author = "mexiaow"
     # 作者主页
@@ -352,7 +353,6 @@ class TelegramTopicPush(_PluginBase):
         image = self.__value_to_str(self.__get_notice_value(notice, "image")).strip()
         link = self.__value_to_str(self.__get_notice_value(notice, "link")).strip()
         buttons = self.__parse_buttons(self.__get_notice_value(notice, "buttons"))
-        buttons = self.__append_link_button(buttons=buttons, link=link)
 
         if not title and not text and not image:
             return
@@ -493,8 +493,8 @@ class TelegramTopicPush(_PluginBase):
         payload = {
             "chat_id": self._chat_id,
             "message_thread_id": topic_id,
-            "parse_mode": "Markdown",
-            "text": content,
+            "parse_mode": "MarkdownV2",
+            "text": standardize(content),
             "disable_web_page_preview": disable_web_page_preview,
         }
         reply_markup = self.__build_reply_markup(buttons)
@@ -512,9 +512,9 @@ class TelegramTopicPush(_PluginBase):
         payload = {
             "chat_id": self._chat_id,
             "message_thread_id": topic_id,
-            "parse_mode": "Markdown",
+            "parse_mode": "MarkdownV2",
             "photo": image,
-            "caption": content,
+            "caption": standardize(content),
         }
         reply_markup = self.__build_reply_markup(buttons)
         if reply_markup:
@@ -601,18 +601,6 @@ class TelegramTopicPush(_PluginBase):
                     }
                 )
         return parsed_buttons
-
-    @staticmethod
-    def __append_link_button(
-        buttons: List[Dict[str, str]],
-        link: str,
-    ) -> List[Dict[str, str]]:
-        if not link:
-            return buttons or []
-        buttons = buttons or []
-        if any(button.get("url") == link for button in buttons):
-            return buttons
-        return [*buttons, {"text": "查看详情", "url": link}]
 
     def __iter_buttons(self, buttons: Any) -> List[Any]:
         if not buttons:
