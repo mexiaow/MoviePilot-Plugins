@@ -1,0 +1,8 @@
+[project]
+name = "moviepilot-plugin-kdocsepisodenotify"
+dynamic = ["version"]
+requires-python = ">=3.12"
+# openpyxl 用于解析金山文档导出的 xlsx；宿主安装插件时会自动安装本清单中的依赖。
+dependencies = [
+    "openpyxl>=3.1.0",
+]

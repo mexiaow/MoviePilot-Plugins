@@ -1,0 +1,45 @@
+{
+  "DramaRadar": {
+    "name": "新剧雷达",
+    "description": "定时监控猫眼网播热度榜，发现新剧后直发 Telegram。",
+    "labels": "消息通知,Telegram,新剧监控",
+    "version": "1.0.1",
+    "icon": "Telegram_A.png",
+    "author": "mexiaow",
+    "level": 1,
+    "system_version": ">=2.12.0",
+    "history": {
+      "v1.0.1": "新增通知上线天数配置，支持跳过超过指定上线天数的新剧通知",
+      "v1.0.0": "新增新剧雷达插件，支持猫眼网播热度榜定时扫描、首次基线、插件数据去重和 Telegram 群组/话题直发"
+    }
+  },
+  "EmbyDailyReports": {
+    "name": "Emby入库日报",
+    "description": "定时统计 MoviePilot 入库记录并发送到 Telegram 话题。",
+    "labels": "消息通知,Telegram,入库统计",
+    "version": "1.0.0",
+    "icon": "Telegram_A.png",
+    "author": "mexiaow",
+    "level": 1,
+    "system_version": ">=2.12.0",
+    "history": {
+      "v1.0.0": "新增 Emby 入库日报插件，支持 cron 定时、立即发送一次、Telegram 群组和话题直发"
+    }
+  },
+  "TelegramTopicPush": {
+    "name": "Telegram话题推送",
+    "description": "按规则将 MoviePilot 通知推送到 Telegram 群组话题。",
+    "labels": "消息通知,Telegram",
+    "version": "1.0.3",
+    "icon": "Telegram_A.png",
+    "author": "mexiaow",
+    "level": 1,
+    "system_version": ">=2.12.0",
+    "history": {
+      "v1.0.3": "清理下载描述末尾的站点评分碎片，去掉图片失败后的纯文本降级",
+      "v1.0.2": "去掉图片失败后的纯文本降级，图片通知保持 Telegram 图片消息发送逻辑",
+      "v1.0.1": "修复 Telegram MarkdownV2 特殊字符转义，避免资源描述导致发送失败",
+      "v1.0.0": "新增 Telegram 群组话题分流推送，支持自定义 API 地址、失败重试和查看详情链接"
+    }
+  }
+}
